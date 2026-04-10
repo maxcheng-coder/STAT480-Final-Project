@@ -134,21 +134,15 @@ svyby( ~ one , ~ cit , acs_design , unwtd.count )
 svyby( ~ one , ~ hins2, acs_design , unwtd.count )
   # 1 (insurance purchased directly from insurance company) = 5956010
   # 2 (insurance not purchased directly from insurance company) = 4087251
-
-var(svyby( ~ one , ~ hins2, acs_design , unwtd.count ))
 ```
 
 ```{r}
 # Weighted counts: count the weigted size of the generizable population, overall, and by groups
 
-svytotal( ~ one , acs_design ) # total population size N of ACS survey: 10037261
+svytotal( ~ one , acs_design ) # total sample size n of ACS survey: 10037261
 # svyby( ~ one , ~ cit , acs_design , svytotal ) # counts and standard errors by citizenship status
-weightedtotal <- svyby( ~ one , ~ hins2, acs_design , svytotal )
-weightedtotal
 
-N <- 10037261 # verify?
-
-var(weightedtotal)
+N <- 10037261 
 ```
 
 
