@@ -3,8 +3,19 @@ Elements: 2023 Michigan Households and Individuals in group quarters (GQ) (eg. p
 Sampling Frame: PUMS ACS 2023 Microdata
 
 Estimator 1: Proportion of Michiganders who are insured
-Estimator 2: Mean income of Michiganders (regression estimatore, with auxiliary variable x being age)
-Estimator 3: Total number of unemployed michiganders
+  find sample size
+  complete an SRS with bound
+  decide strata and complete STSRS with bound?
+
+Estimator 2: Mean income of Michiganders (regression estimator, with auxiliary variable x being age)
+  find sample size
+  complete regression estimator with bound
+  complete ratio estimator with bound
+
+Estimator 3: Total number of unemployed Michiganders
+  find sample size
+  complete an SRS with bound
+  decide strata and complete STSRS with bound?
 
 Data source: https://www.census.gov/programs-surveys/acs/microdata/documentation.2023.html#list-tab-1370939201
 
