@@ -1,0 +1,60 @@
+# trying to evade Gwendolyn McGurie's merge() error due to limited RAM 
+
+# code from https://asdfree.com/american-community-survey-acs.html
+
+library(haven)
+
+tf_household <- tempfile()
+this_url_household <-
+    "https://www2.census.gov/programs-surveys/acs/data/pums/2024/1-Year/sas_hmi.zip"
+download.file( this_url_household , tf_household , mode = 'wb' )
+unzipped_files_household <- unzip( tf_household , exdir = tempdir() )
+acs_sas_household <-
+    grep( '\\.sas7bdat$' , unzipped_files_household , value = TRUE )
+acs_df_household <- read_sas( acs_sas_household )
+dim(acs_df_household)
+#> dim(acs_df_household)
+#[1] 51390   241
+names( acs_df_household ) <- tolower( names( acs_df_household ) )
+
+tf_person <- tempfile()
+this_url_person <-
+    "https://www2.census.gov/programs-surveys/acs/data/pums/2024/1-Year/sas_pmi.zip"
+download.file( this_url_person , tf_person , mode = 'wb' )
+unzipped_files_person <- unzip( tf_person , exdir = tempdir() )
+acs_sas_person <-
+    grep( '\\.sas7bdat$' , unzipped_files_person , value = TRUE )
+acs_sas_person   
+#> acs_sas_person   
+#[1] "/tmp/RtmphVxQ4z/psam_p26.sas7bdat"
+acs_df_person <- read_sas( acs_sas_person )
+dim(acs_df_person)
+#> dim(acs_df_person)
+#[1] 102725    286
+names( acs_df_person ) <- tolower( names( acs_df_person ) )
+
+acs_df_household[ , 'rt' ] <- NULL
+acs_df_person[ , 'rt' ] <- NULL
+acs_df <- merge( acs_df_household , acs_df_person )
+dim(acs_df);
+stopifnot( nrow( acs_df ) == nrow( acs_df_person ) )
+acs_df[ , 'one' ] <- 1
+dim(acs_df);
+#> dim(acs_df);
+#[1] 102725    520
+
+save(acs_df, file="merged_ACS_MI2024.RData")
+
+library(survey)
+acs_design <-
+    svrepdesign(
+        weight = ~pwgtp ,
+        repweights = 'pwgtp[0-9]+' ,
+        scale = 4 / 80 ,
+        rscales = rep( 1 , 80 ) ,
+        mse = TRUE ,
+        type = 'JK1' ,
+        data = acs_df
+    )
+
+dim(acs_design)
