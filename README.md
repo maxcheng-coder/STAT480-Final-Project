@@ -1,3 +1,14 @@
-Population: Michigan Population 2023
-Elements: 2023 Michigan Households and Individuals in organized housing (eg. prisons, long term care facilities, etc.)
+Population: Michigan Population 2023 (inhabitants)
+Elements: 2023 Michigan Households and Individuals in group quarters (GQ) (eg. prisons, long term care facilities, etc.)
 Sampling Frame: PUMS ACS 2023 Microdata
+
+Estimator 1: Proportion of Michiganders who are insured
+Estimator 2: Mean income of Michiganders (regression estimatore, with auxiliary variable x being age)
+Estimator 3: Total number of unemployed michiganders
+
+Data source: https://www.census.gov/programs-surveys/acs/microdata/documentation.2023.html#list-tab-1370939201
+
+Helper code: https://asdfree.com/american-community-survey-acs.html
+
+
+Comments from mebane on proposal: "By the time you're done it would be good to have learned the exact size (i.e., N) of the sampling frame.  Then also say a bit more about coverage errors between that frame and the apparent target of all residents."
