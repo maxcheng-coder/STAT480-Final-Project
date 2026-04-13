@@ -72,6 +72,8 @@ dim(acs_design)
 ```
 
 ```{r}
+acs_df$hicov <- as.numeric(as.character(acs_df$hicov))
+
 # variable recording (from helper data)
 acs_design <-
     update(
@@ -127,22 +129,12 @@ acs_design <-
 
 
 ```{r}
-# Unweighted counts: count the unweighted number of records in the survey sample, overall, and by groups
-
-sum(weights(acs_design, "sampling" ) != 0 ) 
-svyby( ~ one , ~ cit , acs_design , unwtd.count )
-svyby( ~ one , ~ hins2, acs_design , unwtd.count )
-  # 1 (insurance purchased directly from insurance company) = 5956010
-  # 2 (insurance not purchased directly from insurance company) = 4087251
-```
-
-```{r}
 # Weighted counts: count the weigted size of the generizable population, overall, and by groups
 
 svytotal( ~ one , acs_design ) # total sample size n of ACS survey: 10037261
 # svyby( ~ one , ~ cit , acs_design , svytotal ) # counts and standard errors by citizenship status
 
-N <- 10037261 
+N <- 10037261 # estimated population
 ```
 
 
