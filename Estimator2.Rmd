@@ -1,0 +1,200 @@
+---
+title: "Estimators.2"
+author: "Cheng Ma"
+date: "2026.4.14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+##Estimator 2: Mean Personal Income of Michiganders
+
+##For Estimator 2, we estimate the mean personal income of Michiganders using the 2023 Michigan ACS PUMS person-level data. The variable of interest is PINCP, and the auxiliary variable is AGEP. Missing values of PINCP and AGEP are excluded, while zero and negative income values are retained.
+
+##We use a regression estimator as the primary estimator and a ratio estimator for comparison. As in Estimator 1, the bound on the error of estimation is defined as
+
+##Bound=2×SE.
+##Read and Merge Data
+library(haven)
+
+tf_household <- tempfile()
+this_url_household <-
+  "https://www2.census.gov/programs-surveys/acs/data/pums/2023/1-Year/sas_hmi.zip"
+download.file(this_url_household, tf_household, mode = "wb")
+unzipped_files_household <- unzip(tf_household, exdir = tempdir())
+acs_sas_household <- grep("\\.sas7bdat$", unzipped_files_household, value = TRUE)
+acs_df_household <- read_sas(acs_sas_household)
+names(acs_df_household) <- tolower(names(acs_df_household))
+
+tf_person <- tempfile()
+this_url_person <-
+  "https://www2.census.gov/programs-surveys/acs/data/pums/2023/1-Year/sas_pmi.zip"
+download.file(this_url_person, tf_person, mode = "wb")
+unzipped_files_person <- unzip(tf_person, exdir = tempdir())
+acs_sas_person <- grep("\\.sas7bdat$", unzipped_files_person, value = TRUE)
+acs_df_person <- read_sas(acs_sas_person)
+names(acs_df_person) <- tolower(names(acs_df_person))
+acs_df_household[, "rt"] <- NULL
+acs_df_person[, "rt"] <- NULL
+
+acs_df <- merge(acs_df_household, acs_df_person)
+
+stopifnot(nrow(acs_df) == nrow(acs_df_person))
+
+acs_df[, "one"] <- 1
+
+dim(acs_df)
+##Build Survey Design
+library(survey)
+
+acs_design <-
+  svrepdesign(
+    weight = ~pwgtp,
+    repweights = "pwgtp[0-9]+",
+    scale = 4 / 80,
+    rscales = rep(1, 80),
+    mse = TRUE,
+    type = "JK1",
+    data = acs_df
+  )
+
+dim(acs_design)
+##Prepare Variables
+acs_design <- update(
+  acs_design,
+  pincp = as.numeric(pincp),
+  agep  = as.numeric(agep)
+)
+
+design_e2 <- subset(
+  acs_design,
+  !is.na(pincp) & !is.na(agep)
+)
+
+sum(weights(design_e2, "sampling") != 0)
+
+##The complete-case sample size for Estimator 2 is 87,189.
+
+##Plain Weighted Mean
+mean_fit <- svymean(~pincp, design_e2, na.rm = TRUE)
+
+mean_est   <- coef(mean_fit)[1]
+mean_se    <- SE(mean_fit)[1]
+mean_bound <- 2 * mean_se
+mean_ci    <- c(mean_est - mean_bound, mean_est + mean_bound)
+
+mean_results <- data.frame(
+  estimator = "Plain weighted mean",
+  estimate  = mean_est,
+  SE        = mean_se,
+  bound     = mean_bound,
+  CI_lower  = mean_ci[1],
+  CI_upper  = mean_ci[2]
+)
+
+mean_results
+
+##The plain weighted mean estimate is $46,206.98, with bound 527.36 and approximate 95% confidence interval (45,679.62, 46,734.34).
+
+##Population Mean Age
+xbar_fit <- svymean(~agep, acs_design, na.rm = TRUE)
+Xbar_pop <- coef(xbar_fit)[1]
+
+Xbar_pop
+
+##The estimated population mean age is 40.61.
+
+##Ratio Estimator
+ratio_fit <- svyratio(~pincp, ~agep, design = design_e2)
+
+ratio_R    <- coef(ratio_fit)[1]
+ratio_se_R <- SE(ratio_fit)[1]
+
+ratio_est   <- Xbar_pop * ratio_R
+ratio_se    <- Xbar_pop * ratio_se_R
+ratio_bound <- 2 * ratio_se
+ratio_ci    <- c(ratio_est - ratio_bound, ratio_est + ratio_bound)
+
+ratio_results <- data.frame(
+  estimator = "Ratio estimator",
+  estimate  = ratio_est,
+  SE        = ratio_se,
+  bound     = ratio_bound,
+  CI_lower  = ratio_ci[1],
+  CI_upper  = ratio_ci[2]
+)
+
+ratio_results
+
+##The ratio estimator gives an estimated mean income of $39,489.99, with bound 457.09 and approximate 95% confidence interval (39,032.90, 39,947.08).
+
+##Regression Estimator
+reg_fit <- svyglm(pincp ~ agep, design = design_e2)
+
+summary(reg_fit)
+reg_pred <- predict(
+  reg_fit,
+  newdata = data.frame(agep = Xbar_pop),
+  se = TRUE
+)
+
+reg_est <- as.numeric(reg_pred)
+reg_se  <- sqrt(as.numeric(attr(reg_pred, "var")))
+
+reg_bound <- 2 * reg_se
+reg_ci    <- c(reg_est - reg_bound, reg_est + reg_bound)
+
+reg_results <- data.frame(
+  estimator = "Regression estimator",
+  estimate  = reg_est,
+  SE        = reg_se,
+  bound     = reg_bound,
+  CI_lower  = reg_ci[1],
+  CI_upper  = reg_ci[2]
+)
+
+reg_results
+
+##The regression estimator gives an estimated mean income of $43,555.05, with bound 506.95 and approximate 95% confidence interval (43,048.11, 44,062.00).
+
+##Compare Estimators
+all_results <- rbind(
+  mean_results,
+  ratio_results,
+  reg_results
+)
+
+all_results
+
+##The ratio estimator has the smallest standard error, but the regression estimator is preferred because the relationship between income and age is not expected to pass through the origin. The regression estimator therefore provides the main estimator for Estimator 2.
+
+##Required Sample Size
+B_target <- 1000
+
+reg_resid <- residuals(reg_fit, type = "response")
+reg_wts   <- weights(design_e2, type = "sampling")
+
+Se2_hat <- sum(reg_wts * reg_resid^2, na.rm = TRUE) / sum(reg_wts, na.rm = TRUE)
+
+n_required_no_fpc <- ceiling(4 * Se2_hat / (B_target^2))
+
+N_pop <- 10037261
+
+n_required_fpc <- ceiling(
+  (4 * N_pop * Se2_hat) / (B_target^2 * N_pop + 4 * Se2_hat)
+)
+
+sample_size_results <- data.frame(
+  target_bound = B_target,
+  residual_variance = Se2_hat,
+  n_required_no_fpc = n_required_no_fpc,
+  n_required_fpc = n_required_fpc
+)
+
+sample_size_results
+
+##Using a target bound of 1000, the estimated required sample size is 15,257 without finite population correction and 15,234 with finite population correction. Since the current sample size is 87,189, the available ACS sample is much larger than required.
+
+##Conclusion
+
+##For Estimator 2, the plain weighted mean estimate is $46,206.98, the ratio estimate is $39,489.99, and the regression estimate is $43,555.05. We prefer the regression estimator because it uses age as an auxiliary variable without imposing a proportional-through-origin relationship.
